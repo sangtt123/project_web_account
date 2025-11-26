@@ -6,8 +6,15 @@ import { Category } from '../types';
 import { Zap, Sparkles, Search, SlidersHorizontal, X, ShieldCheck, Truck, Headphones, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '../services/mockBackend';
 import { ScrollReveal } from '../components/ScrollReveal';
-
+import { productService } from "../services/productService";
+interface Product {
+    id: number;
+    name: string;
+    price: number;
+    image?: string;
+}
 export const Home: React.FC = () => {
+    const [products, setProducts] = useState<Product[]>([]);
     const [activeCategory, setActiveCategory] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [maxPrice, setMaxPrice] = useState<number>(5000000);
@@ -22,6 +29,15 @@ export const Home: React.FC = () => {
             setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
         }, 5000); // 5 seconds
         return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        productService.getAll()
+            .then(data => {
+                console.log("👉 Products fetched:", data);
+                setProducts(data);
+            })
+            .catch(err => console.error("❌ Fetch error:", err));
     }, []);
 
     // Reset số lượng hiển thị về 10 khi bộ lọc thay đổi
@@ -168,8 +184,8 @@ export const Home: React.FC = () => {
             <section id="products" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 -mt-6">
                 {/* Removed ScrollReveal from this container to ensure filters are always visible */}
                 <div className="flex flex-col gap-6">
-                    <div className="flex flex-col md:flex-row justify-between items-end gap-4">
-                        <div>
+                    <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-4">
+                        <div className="text-center md:text-left">
                             <h2 className="text-2xl font-bold text-gray-900">Danh sách sản phẩm</h2>
                             <p className="text-sm text-gray-500">Các gói dịch vụ hot nhất hiện nay</p>
                         </div>

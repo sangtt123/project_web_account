@@ -54,7 +54,27 @@ export const PRODUCTS: Product[] = [
         id: "netflix-prem",
         name: "Netflix Premium 4K",
         description: "Xem phim chất lượng Ultra HD 4K. Profile riêng tư, có mã PIN bảo mật.",
-        price: 69000, // Giá thấp nhất để hiển thị "Từ..."
+        longDescription: `
+        <p><strong>Netflix Premium</strong> là gói dịch vụ cao cấp nhất của Netflix, mang đến trải nghiệm giải trí đỉnh cao cho người dùng. Khi nâng cấp lên gói này, bạn sẽ được tận hưởng kho phim khổng lồ với chất lượng hình ảnh lên đến <strong>Ultra HD 4K</strong> và công nghệ âm thanh vòm sống động.</p>
+        <br/>
+        <p>Điểm nổi bật của gói Premium tại AutoKey:</p>
+        <ul class="list-disc pl-5 space-y-2 mt-2">
+          <li><strong>Chất lượng 4K HDR:</strong> Hình ảnh sắc nét gấp 4 lần Full HD, hỗ trợ HDR10 và Dolby Vision.</li>
+          <li><strong>Profile riêng tư:</strong> Bạn sẽ được cấp 1 profile (hồ sơ) riêng biệt, có thể đặt mã PIN để bảo mật lịch sử xem phim của mình.</li>
+          <li><strong>Đa nền tảng:</strong> Xem được trên mọi thiết bị từ Smart TV, Laptop, Điện thoại đến Máy tính bảng.</li>
+          <li><strong>Không quảng cáo:</strong> Trải nghiệm xem phim liền mạch, không bị làm phiền bởi bất kỳ quảng cáo nào.</li>
+        </ul>
+        <br/>
+        <p>Tài khoản được AutoKey cung cấp là tài khoản chính hãng, thanh toán đầy đủ, đảm bảo hoạt động ổn định trong suốt thời gian đăng ký. Chúng tôi cam kết bảo hành 1 đổi 1 nếu có bất kỳ lỗi nào xảy ra.</p>
+      `,
+        guideSteps: [
+            "Truy cập trang chủ Netflix.com hoặc mở ứng dụng Netflix.",
+            "Đăng nhập bằng Email và Mật khẩu do AutoKey cung cấp.",
+            "Chọn đúng Profile mang tên bạn (hoặc Profile số được chỉ định).",
+            "Thưởng thức phim! Lưu ý: Không đổi mật khẩu tài khoản chung."
+        ],
+        youtubeVideoId: "GV3HUDMQ-HK8", // Official Netflix Trailer example
+        price: 69000,
         originalPrice: 260000,
         thumbnail: "https://picsum.photos/seed/netflix/400/300",
         category: Category.STREAMING,
@@ -70,6 +90,25 @@ export const PRODUCTS: Product[] = [
         id: "youtube-prem",
         name: "YouTube Premium (Chính chủ)",
         description: "Xem YouTube không quảng cáo, bao gồm YouTube Music. Nâng cấp trên chính email của bạn.",
+        longDescription: `
+        <p>Bạn đã quá mệt mỏi với việc đang xem video thì bị quảng cáo cắt ngang? <strong>YouTube Premium</strong> chính là giải pháp hoàn hảo dành cho bạn.</p>
+        <br/>
+        <p>Dịch vụ nâng cấp YouTube Premium tại AutoKey được thực hiện trực tiếp trên <strong>Email chính chủ</strong> của bạn. Không cần đổi tài khoản, giữ nguyên lịch sử xem và danh sách kênh đăng ký.</p>
+        <p>Các tính năng đặc biệt:</p>
+        <ul class="list-disc pl-5 space-y-2 mt-2">
+           <li><strong>Video không quảng cáo:</strong> Xem hàng triệu video không bị gián đoạn.</li>
+           <li><strong>Phát trong nền:</strong> Video vẫn chạy khi bạn tắt màn hình hoặc chuyển sang ứng dụng khác.</li>
+           <li><strong>YouTube Music Premium:</strong> Tặng kèm ứng dụng nghe nhạc chuyên nghiệp, chất lượng cao.</li>
+           <li><strong>Tải xuống:</strong> Lưu video để xem offline khi không có mạng.</li>
+        </ul>
+      `,
+        guideSteps: [
+            "Đặt hàng và điền đúng Email Gmail bạn muốn nâng cấp.",
+            "AutoKey sẽ gửi một Email mời tham gia nhóm Family vào hộp thư của bạn.",
+            "Mở Email, bấm 'Chấp nhận lời mời' (Accept Invitation).",
+            "Xác nhận tham gia gia đình. Xong! Tài khoản của bạn đã lên Premium."
+        ],
+        youtubeVideoId: "1g6j2nO8y-o",
         price: 25000,
         originalPrice: 79000,
         thumbnail: "https://picsum.photos/seed/youtube/400/300",
@@ -85,6 +124,23 @@ export const PRODUCTS: Product[] = [
         id: "spotify-prem",
         name: "Spotify Premium",
         description: "Nâng cấp chính chủ tài khoản của bạn. Nghe nhạc không quảng cáo, tải nhạc offline.",
+        longDescription: `
+        <p>Thế giới âm nhạc trong tầm tay với <strong>Spotify Premium</strong>. Tận hưởng chất lượng âm thanh 320kbps cực đỉnh và khả năng điều khiển không giới hạn.</p>
+        <br/>
+        <p>Lợi ích khi nâng cấp:</p>
+        <ul class="list-disc pl-5 space-y-2 mt-2">
+          <li>Nghe bất kỳ bài hát nào, không bị trộn bài ngẫu nhiên.</li>
+          <li>Không có quảng cáo chèn ngang.</li>
+          <li>Tải nhạc về nghe Offline mọi lúc mọi nơi.</li>
+          <li>Chất lượng âm thanh Extreme (320kbit/s).</li>
+        </ul>
+      `,
+        guideSteps: [
+            "Sau khi thanh toán, check Email để nhận Link Invite.",
+            "Đăng nhập tài khoản Spotify của bạn trên trình duyệt.",
+            "Click vào Link Invite và xác nhận địa chỉ (chúng tôi sẽ cung cấp địa chỉ khớp với gói).",
+            "Hoàn tất! App Spotify sẽ tự động chuyển sang giao diện Premium."
+        ],
         price: 35000,
         originalPrice: 59000,
         thumbnail: "https://picsum.photos/seed/spotify/400/300",
@@ -131,6 +187,24 @@ export const PRODUCTS: Product[] = [
         id: "gpt-plus",
         name: "ChatGPT Plus / Team",
         description: "Sử dụng GPT-4o, DALL-E 3 và phân tích dữ liệu nâng cao với chi phí tiết kiệm.",
+        longDescription: `
+        <p>Khai phá sức mạnh của trí tuệ nhân tạo với <strong>ChatGPT Plus</strong>. Phiên bản trả phí giúp bạn truy cập vào các mô hình AI tiên tiến nhất của OpenAI.</p>
+        <br/>
+        <p>Tính năng nổi bật:</p>
+        <ul class="list-disc pl-5 space-y-2 mt-2">
+          <li><strong>GPT-4o:</strong> Thông minh hơn, nhanh hơn và hỗ trợ đa phương thức (hình ảnh, giọng nói).</li>
+          <li><strong>DALL-E 3:</strong> Tạo ảnh nghệ thuật từ văn bản ngay trong khung chat.</li>
+          <li><strong>Data Analysis:</strong> Tải lên file Excel, PDF để AI phân tích số liệu.</li>
+          <li><strong>Browsing:</strong> Truy cập internet thời gian thực để lấy thông tin mới nhất.</li>
+        </ul>
+      `,
+        guideSteps: [
+            "Truy cập chat.openai.com.",
+            "Chọn 'Log in'.",
+            "Nhập Email và Password nhận được từ AutoKey.",
+            "Lưu ý: Với tài khoản dùng chung, vui lòng không xóa lịch sử chat của người khác."
+        ],
+        youtubeVideoId: "O4WlK3-6U8Q",
         price: 99000,
         originalPrice: 500000,
         thumbnail: "https://picsum.photos/seed/gpt/400/300",

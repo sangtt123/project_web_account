@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model accounts {
+  id         Int      @id @default(autoincrement())
+  product_id String
+  username   String?
+  password   String?
+  products   products @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model hero_slides {
+  id          Int     @id @default(autoincrement())
+  tag         String?
+  title       String?
+  highlight   String?
+  description String?
+  bg_image    String?
+  gradient    String?
+  btn_color   String?
+}
+
+model product_features {
+  id         Int       @id @default(autoincrement())
+  product_id String?
+  feature    String
+  products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model product_guides {
+  id         Int       @id @default(autoincrement())
+  product_id String?
+  step_order Int?
+  step_text  String?
+  products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model product_options {
+  id             Int       @id @default(autoincrement())
+  product_id     String?
+  option_code    String?
+  name           String?
+  price          Int?
+  original_price Int?
+  products       products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model products {
+  id               String             @id
+  name             String
+  description      String?
+  long_description String?
+  youtube_video_id String?
+  price            Int
+  original_price   Int?
+  thumbnail        String?
+  category         String
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  accounts         accounts[]
+  product_features product_features[]
+  product_guides   product_guides[]
+  product_options  product_options[]
+}
