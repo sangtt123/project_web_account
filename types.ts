@@ -4,31 +4,28 @@ export interface ProductOption {
     id: string;
     name: string; // e.g., "1 Tháng", "1 Năm"
     price: number;
-    originalPrice?: number;
+    original_price?: number;
 }
 
 export interface Product {
-    id: string;
-    name: string;
+    category: string;
+    created_at: string;
     description: string;
-    price: number; // Base price or lowest price
-    originalPrice?: number;
+    id: string;
+    long_description?: string; // HTML or Markdown-like text
+    name: string;
+    original_price?: number;
+    price: number;
     thumbnail: string;
-    category: Category;
-    features: string[];
-    options?: ProductOption[]; // New: List of available options
-
-    // New detailed fields
-    longDescription?: string; // HTML or Markdown-like text
-    guideSteps?: string[]; // Array of step-by-step instructions
-    youtubeVideoId?: string; // YouTube Video ID (e.g., "dQw4w9WgXcQ")
+    youtube_video_id?: string;
+    product_features: Feature[];
+    product_guides: Guides[];
+    product_options: ProductOption[]
 }
 
-export enum Category {
-    STREAMING = 'Streaming',
-    WORK = 'Work Tools',
-    GAMING = 'Gaming',
-    VPN = 'VPN & Security'
+export interface Category {
+    id: number;
+    category_name: string | null;
 }
 
 // Cart Types
@@ -38,45 +35,84 @@ export interface CartItem {
     selectedOption?: ProductOption; // New: Track which option was selected
 }
 
-// Order Types
-export interface OrderItem {
-    productId: string;
-    productName: string; // Should include option name e.g. "Netflix (1 Tháng)"
-    price: number;
-    quantity: number;
-    thumbnail: string;
-    optionId?: string; // New
-}
-
 export interface Order {
     id: string;
-    userEmail: string;
-    items: OrderItem[];
-    totalAmount: number;
-    status: 'PENDING' | 'PAID' | 'FAILED';
-    createdAt: string;
-    deliveredAccounts?: {
-        productId: string;
-        productName: string;
-        accounts: AccountCredentials[];
-    }[];
+    order_code: string;
+    user_email: string;
+    total_amount: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    order_item: OrderItem[];
 }
 
-export interface AccountCredentials {
-    username?: string;
-    password?: string;
-    additionalInfo?: string;
+// Order Types
+export interface OrderItem {
+    id: number;
+    order_id: string;
+    product_id: string;
+    productName: string;
+    option_id: string;
+    optionName: string;
+    price: number;
+    quantity: number;
 }
 
-// Stock/Inventory Types
-export interface StockItem {
+export interface Options {
+    id: string,
+    product_id: string,
+    option_code: string,
+    name: string,
+    price: number,
+    original_price: number,
+}
+
+export interface Feature {
     id: string;
-    productId: string;
+    product_id: string;
+    feature: string;
+}
+
+
+export interface Guides {
+    id: string,
+    product_id: string,
+    step_order: string,
+    step_text: string,
+}
+
+export interface Slides {
+    id: string,
+    tag: string,
+    title: string,
+    highlight: string,
+    description: string,
+    bg_image: string,
+    gradient: string,
+    btn_color: string
+}
+
+export interface Account {
+    id: number;
+    product_id: string;
+    option_id: string;
     username: string;
-    password?: string;
-    additionalInfo?: string;
-    isSold: boolean;
-    createdAt: string;
+    password: string;
+    is_sold: boolean;
+    sold_at: Date | null;
+    order_item_id: number | null;
+    created_at: Date;
+}
+
+export interface HeroSlide {
+    id: number;
+    tag?: string | null;
+    title?: string | null;
+    highlight?: string | null;
+    description?: string | null;
+    bg_image?: string | null;
+    gradient?: string | null;
+    btn_color?: string | null;
 }
 
 // Logging Types
