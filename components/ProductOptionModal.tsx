@@ -4,40 +4,43 @@ import { createPortal } from 'react-dom';
 import { Product, ProductOption } from '@/types';
 import { formatCurrency } from '@/utils/format';
 import { cartService } from '@/services/cartService';
-import { X, CheckCircle, ShoppingCart, Plus, Package, ShieldCheck, Zap } from 'lucide-react';
+import { X, CheckCircle, ShoppingCart, Plus, Package, ShieldCheck, Zap, XCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ProductOptionModalProps {
     product: Product;
+    options?: ProductOption[] | null; // Nhận options từ cha truyền xuống
     isOpen: boolean;
     onClose: () => void;
 }
 
-export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product, isOpen, onClose }) => {
+export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product, options: propOptions, isOpen, onClose }) => {
     const [selectedOption, setSelectedOption] = useState<ProductOption | null>(null);
-    const [fetchedOptions, setFetchedOptions] = useState<ProductOption[]>([]); // State lưu data fetch từ API
+    const [fetchedOptions, setFetchedOptions] = useState<ProductOption[]>([]);
+    const [stockCount, setStockCount] = useState<number | null>(null); // State tồn kho của option đang chọn
+    const [isCheckingStock, setIsCheckingStock] = useState(false); // State loading khi check kho
+
     const router = useRouter();
     const imgRef = useRef<HTMLImageElement>(null);
 
-    // LOGIC THÔNG MINH:
-    // 1. Ưu tiên lấy options có sẵn từ props (nếu trang chủ đã load)
-    // 2. Nếu không có, dùng fetchedOptions (lấy từ API bên dưới)
-    const options = (product.product_options && product.product_options.length > 0)
-        ? product.product_options
-        : fetchedOptions;
+    // Ưu tiên dùng options từ props (đã fetch ở ProductCard), sau đó đến product.product_options, cuối cùng là tự fetch
+    const displayOptions = (propOptions && propOptions.length > 0)
+        ? propOptions
+        : (product.product_options && product.product_options.length > 0)
+            ? product.product_options
+            : fetchedOptions;
 
-    // --- GIỮ LẠI LOGIC FETCH DATA CŨ (Dự phòng) ---
+    const hasOptions = displayOptions && displayOptions.length > 0;
+
+    // Fetch options nếu chưa có (Fallback logic)
     useEffect(() => {
-        if (isOpen && (!product.product_options || product.product_options.length === 0)) {
+        if (isOpen && !hasOptions) {
             const fetchOptions = async () => {
                 try {
-                    // Gọi API lấy option (nhớ kiểm tra đúng đường dẫn API của bạn)
-                    // Ở đây mình map dữ liệu trả về cho khớp với interface ProductOption
-                    const res = await fetch(`/api/products?id=${product.id}`);
+                    const res = await fetch(`/api/product_option?product_id=${product.id}`);
                     const data = await res.json();
-
-                    if (data && data.product_options) {
-                        setFetchedOptions(data.product_options);
+                    if (Array.isArray(data)) {
+                        setFetchedOptions(data);
                     }
                 } catch (err) {
                     console.error("Failed to fetch options:", err);
@@ -45,20 +48,53 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
             };
             fetchOptions();
         }
-    }, [isOpen, product]);
+    }, [isOpen, product.id, hasOptions]);
 
-    // Tự động chọn option đầu tiên khi có dữ liệu
+    // Tự động chọn option đầu tiên khi mở modal
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
-            if (options && options.length > 0 && !selectedOption) {
-                setSelectedOption(options[0]);
+            if (hasOptions && !selectedOption) {
+                setSelectedOption(displayOptions[0]);
             }
         } else {
             document.body.style.overflow = 'unset';
         }
         return () => { document.body.style.overflow = 'unset'; }
-    }, [isOpen, options, selectedOption]);
+    }, [isOpen, hasOptions, displayOptions, selectedOption]);
+
+    // --- LOGIC CHECK STOCK (ĐÃ FIX) ---
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // Nếu đang có option nhưng chưa chọn được option nào thì đợi
+        if (hasOptions && !selectedOption) return;
+
+        const checkStock = async () => {
+            setIsCheckingStock(true);
+            setStockCount(null); // Reset để hiện loading
+            try {
+                // Xây dựng URL: nếu có option thì check theo option, nếu không (sp đơn) thì chỉ check theo product_id
+                let url = `/api/products/check-stock?product_id=${product.id}`;
+                if (selectedOption) {
+                    url += `&option_id=${selectedOption.id}`;
+                }
+
+                const res = await fetch(url);
+                const data = await res.json();
+                // FIX: Ép kiểu Number để tránh lỗi so sánh chuỗi "0"
+                setStockCount(Number(data.count));
+            } catch (error) {
+                console.error("Check stock error:", error);
+                setStockCount(0); // Lỗi thì coi như hết hàng an toàn
+            } finally {
+                setIsCheckingStock(false);
+            }
+        };
+
+        checkStock();
+    }, [selectedOption, isOpen, product.id, hasOptions]);
+    // ----------------------------------------
 
     if (!isOpen) return null;
 
@@ -66,12 +102,17 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
     const currentPrice = selectedOption ? selectedOption.price : product.price;
     const currentOriginalPrice = selectedOption ? selectedOption.original_price : product.original_price;
 
+    // Xác định trạng thái hết hàng (FIX: Thêm điều kiện <= 0)
+    const isOutOfStock = !isCheckingStock && stockCount !== null && stockCount <= 0;
+
     const handleAddToCart = () => {
+        if (isOutOfStock) return;
         cartService.addToCart(product, 1, selectedOption || undefined);
         onClose();
     };
 
     const handleBuyNow = () => {
+        if (isOutOfStock) return;
         cartService.addToCart(product, 1, selectedOption || undefined);
         onClose();
         setTimeout(() => router.push('/cart'), 300);
@@ -95,7 +136,7 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
                 onClick={onClose}
             ></div>
 
-            {/* Modal Content - GIAO DIỆN MỚI */}
+            {/* Modal Content */}
             <div className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden animate-modal-scale flex flex-col md:flex-row max-h-[90vh] md:max-h-[600px]">
 
                 {/* Close Button Mobile */}
@@ -109,7 +150,7 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
                         ref={imgRef}
                         src={product.thumbnail}
                         alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isOutOfStock ? 'grayscale' : ''}`}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6 text-white">
                         <span className="bg-indigo-600 w-fit px-3 py-1 rounded-md text-[10px] font-bold tracking-wider mb-2 uppercase shadow-sm">
@@ -119,6 +160,14 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
                             <ShieldCheck className="w-4 h-4 text-green-400" /> Bảo hành trọn đời
                         </div>
                     </div>
+                    {/* Badge Hết hàng trên ảnh */}
+                    {isOutOfStock && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <div className="bg-red-600 text-white px-4 py-2 rounded-full font-bold transform -rotate-12 border-2 border-white shadow-lg">
+                                HẾT HÀNG
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* CỘT PHẢI: THÔNG TIN */}
@@ -137,7 +186,7 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
 
                     {/* GIÁ TIỀN */}
                     <div className="flex items-end gap-3 mb-6 pb-6 border-b border-gray-100">
-                        <span className="text-4xl font-bold text-indigo-600 tracking-tight">
+                        <span className={`text-4xl font-bold tracking-tight ${isOutOfStock ? 'text-gray-400' : 'text-indigo-600'}`}>
                             {formatCurrency(currentPrice)}
                         </span>
                         {currentOriginalPrice && currentOriginalPrice > currentPrice && (
@@ -153,13 +202,13 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
                     </div>
 
                     {/* LIST OPTIONS */}
-                    {options && options.length > 0 ? (
+                    {hasOptions ? (
                         <div className="mb-6">
                             <label className="text-xs font-bold text-gray-900 uppercase mb-3 flex items-center gap-2">
                                 <Package className="w-4 h-4 text-indigo-600" /> Chọn gói dịch vụ:
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {options.map(opt => {
+                                {displayOptions.map(opt => {
                                     const isSelected = selectedOption?.id === opt.id;
                                     return (
                                         <button
@@ -187,26 +236,48 @@ export const ProductOptionModal: React.FC<ProductOptionModalProps> = ({ product,
                     ) : (
                         <div className="mb-6 flex items-center gap-3 text-sm text-gray-500 bg-gray-50 p-4 rounded-xl border border-gray-100">
                             <Zap className="w-5 h-5 text-yellow-500" />
-                            <span>Đang tải gói dịch vụ hoặc sản phẩm này là gói mặc định.</span>
+                            <span>Sản phẩm này chưa có tùy chọn gói.</span>
                         </div>
                     )}
 
-                    {/* NÚT MUA */}
+                    {/* NÚT MUA - XỬ LÝ TRẠNG THÁI KHO */}
                     <div className="grid grid-cols-2 gap-4 mt-auto pt-4 border-t border-gray-50">
-                        <button
-                            onClick={handleAddToCart}
-                            className="flex items-center justify-center gap-2 bg-white text-indigo-600 border-2 border-indigo-600 font-bold py-3.5 rounded-xl hover:bg-indigo-50 transition-all active:scale-[0.98]"
-                        >
-                            <Plus className="w-5 h-5" /> Thêm giỏ
-                        </button>
+                        {isCheckingStock ? (
+                            // Loading State
+                            <button disabled className="col-span-2 flex items-center justify-center gap-2 bg-gray-100 text-gray-500 font-bold py-3.5 rounded-xl cursor-wait">
+                                <Loader2 className="w-5 h-5 animate-spin" /> Đang kiểm tra kho...
+                            </button>
+                        ) : isOutOfStock ? (
+                            // Out of Stock State
+                            <button disabled className="col-span-2 flex items-center justify-center gap-2 bg-gray-100 text-gray-400 border-2 border-gray-200 font-bold py-3.5 rounded-xl cursor-not-allowed">
+                                <XCircle className="w-5 h-5" /> Gói này đang tạm hết hàng
+                            </button>
+                        ) : (
+                            // Normal State
+                            <>
+                                <button
+                                    onClick={handleAddToCart}
+                                    className="flex items-center justify-center gap-2 bg-white text-indigo-600 border-2 border-indigo-600 font-bold py-3.5 rounded-xl hover:bg-indigo-50 transition-all active:scale-[0.98]"
+                                >
+                                    <Plus className="w-5 h-5" /> Thêm giỏ
+                                </button>
 
-                        <button
-                            onClick={handleBuyNow}
-                            className="flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                            <ShoppingCart className="w-5 h-5" /> Mua ngay
-                        </button>
+                                <button
+                                    onClick={handleBuyNow}
+                                    className="flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    <ShoppingCart className="w-5 h-5" /> Mua ngay
+                                </button>
+                            </>
+                        )}
                     </div>
+
+                    {/* Stock Info Helper (Optional) */}
+                    {stockCount !== null && stockCount > 0 && stockCount < 5 && !isCheckingStock && (
+                        <p className="text-center text-xs text-red-500 mt-2 font-medium animate-pulse">
+                            Chỉ còn {stockCount} tài khoản!
+                        </p>
+                    )}
                 </div>
             </div>
         </div>,

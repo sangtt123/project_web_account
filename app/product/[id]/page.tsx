@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatCurrency } from '@/utils/format';
 import { cartService } from '@/services/cartService';
-import { ArrowLeft, CheckCircle, Shield, CreditCard, Clock, ShoppingCart, Plus, Package, PlayCircle, BookOpen, AlertCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Shield, CreditCard, Clock, ShoppingCart, Plus, Package, PlayCircle, BookOpen, AlertCircle, ShieldCheck, XCircle, Loader2 } from 'lucide-react'; // Import thêm icon
 import { ScrollReveal } from '@/components/ScrollReveal';
 import { ProductOption } from '@/types';
 
@@ -15,6 +15,8 @@ const ProductDetail = () => {
     const imgRef = useRef<HTMLImageElement>(null);
 
     const [selectedOption, setSelectedOption] = useState<ProductOption | null>(null);
+    const [stockCount, setStockCount] = useState<number | null>(null); // State tồn kho
+    const [isCheckingStock, setIsCheckingStock] = useState(false); // State loading kho
 
     // --------------------- product -----------------------
     const [products, setProducts] = useState<Product[]>([]);
@@ -97,12 +99,45 @@ const ProductDetail = () => {
 
     //----------------------------- END -----------------------------
 
+    // Auto select option đầu tiên khi load xong
     useEffect(() => {
         window.scrollTo(0, 0);
-        if (product && options && options.length > 0) {
+        if (product && options && options.length > 0 && !selectedOption) {
             setSelectedOption(options[0]);
         }
-    }, [product]);
+    }, [product, options]); // Thêm options vào dep để đảm bảo chạy khi options load xong
+
+
+    // --- LOGIC CHECK STOCK (MỚI) ---
+    useEffect(() => {
+        if (!product) return;
+
+        // Nếu có options mà chưa chọn (đang load) thì chưa check
+        if (options.length > 0 && !selectedOption) return;
+
+        const checkStock = async () => {
+            setIsCheckingStock(true);
+            setStockCount(null);
+            try {
+                let url = `/api/products/check-stock?product_id=${product.id}`;
+                if (selectedOption) {
+                    url += `&option_id=${selectedOption.id}`;
+                }
+
+                const res = await fetch(url);
+                const data = await res.json();
+                setStockCount(Number(data.count));
+            } catch (error) {
+                console.error("Failed to check stock:", error);
+                setStockCount(0);
+            } finally {
+                setIsCheckingStock(false);
+            }
+        };
+
+        checkStock();
+    }, [product, selectedOption, options.length]);
+    // -------------------------------
 
 
     if (!product) {
@@ -119,6 +154,9 @@ const ProductDetail = () => {
     const currentPrice = selectedOption ? selectedOption.price : product.price;
     const currentOriginalPrice = selectedOption ? selectedOption.original_price : product.original_price;
 
+    // Xác định trạng thái hết hàng
+    const isOutOfStock = !isCheckingStock && stockCount !== null && stockCount <= 0;
+
     const triggerAnimation = () => {
         if (imgRef.current) {
             const rect = imgRef.current.getBoundingClientRect();
@@ -133,11 +171,13 @@ const ProductDetail = () => {
     };
 
     const handleAddToCart = () => {
+        if (isOutOfStock) return;
         triggerAnimation();
         cartService.addToCart(product, 1, selectedOption || undefined);
     };
 
     const handleBuyNow = () => {
+        if (isOutOfStock) return;
         triggerAnimation();
         cartService.addToCart(product, 1, selectedOption || undefined);
         setTimeout(() => {
@@ -162,7 +202,7 @@ const ProductDetail = () => {
                                     ref={imgRef}
                                     src={product.thumbnail}
                                     alt={product.name}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isOutOfStock ? 'grayscale' : ''}`}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 md:p-8">
                                     <div className="text-white">
@@ -171,6 +211,14 @@ const ProductDetail = () => {
                                         </span>
                                     </div>
                                 </div>
+                                {/* Badge Hết hàng */}
+                                {isOutOfStock && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                        <span className="bg-red-600 text-white px-6 py-2 rounded-full text-lg font-bold uppercase shadow-xl transform -rotate-12 border-2 border-white">
+                                            Hết hàng
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Info Side */}
@@ -178,7 +226,9 @@ const ProductDetail = () => {
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
 
                                 <div className="flex items-end gap-3 mb-6">
-                                    <span className="text-3xl md:text-4xl font-bold text-indigo-600">{formatCurrency(currentPrice)}</span>
+                                    <span className={`text-3xl md:text-4xl font-bold ${isOutOfStock ? 'text-gray-400' : 'text-indigo-600'}`}>
+                                        {formatCurrency(currentPrice)}
+                                    </span>
                                     {currentOriginalPrice && (
                                         <span className="text-lg text-gray-400 line-through mb-1.5">{formatCurrency(currentOriginalPrice)}</span>
                                     )}
@@ -222,20 +272,46 @@ const ProductDetail = () => {
                                     </div>
                                 )}
 
-                                <div className="flex gap-4 mt-auto">
-                                    <button
-                                        onClick={handleAddToCart}
-                                        className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 font-bold text-lg py-3.5 rounded-xl hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-                                    >
-                                        <Plus className="w-5 h-5" /> Thêm giỏ hàng
-                                    </button>
-                                    <button
-                                        onClick={handleBuyNow}
-                                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-                                    >
-                                        <ShoppingCart className="w-5 h-5" /> Mua Ngay
-                                    </button>
-                                </div>
+                                {/* ACTION BUTTONS */}
+                                {isCheckingStock ? (
+                                    // Loading State
+                                    <div className="mt-auto pt-2">
+                                        <button disabled className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-500 font-bold py-3.5 rounded-xl cursor-wait">
+                                            <Loader2 className="w-5 h-5 animate-spin" /> Đang kiểm tra kho...
+                                        </button>
+                                    </div>
+                                ) : isOutOfStock ? (
+                                    // Out of Stock State
+                                    <div className="mt-auto pt-2">
+                                        <button disabled className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 border-2 border-gray-200 font-bold py-3.5 rounded-xl cursor-not-allowed">
+                                            <XCircle className="w-5 h-5" /> Sản phẩm này đang tạm hết hàng
+                                        </button>
+                                        {/* Gợi ý: Có thể thêm form đăng ký nhận tin khi có hàng ở đây */}
+                                    </div>
+                                ) : (
+                                    // Normal State
+                                    <div className="flex gap-4 mt-auto">
+                                        <button
+                                            onClick={handleAddToCart}
+                                            className="flex-1 bg-white border-2 border-indigo-600 text-indigo-600 font-bold text-lg py-3.5 rounded-xl hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                                        >
+                                            <Plus className="w-5 h-5" /> Thêm giỏ hàng
+                                        </button>
+                                        <button
+                                            onClick={handleBuyNow}
+                                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                                        >
+                                            <ShoppingCart className="w-5 h-5" /> Mua Ngay
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Stock Info (Optional) */}
+                                {stockCount !== null && stockCount > 0 && stockCount < 5 && !isCheckingStock && (
+                                    <p className="text-xs text-red-500 mt-3 font-medium animate-pulse flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" /> Chỉ còn {stockCount} tài khoản!
+                                    </p>
+                                )}
 
                                 <div className="bg-gray-50 rounded-xl p-4 mt-6 flex justify-between gap-2 text-xs text-gray-500 font-medium">
                                     <div className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-indigo-500" /> Giao tự động 5s</div>

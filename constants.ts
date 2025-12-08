@@ -1,2 +1,2 @@
 
-export const APP_NAME = "AutoKey Store";
+export const APP_NAME = "Shop Công Nghệ 4.0";

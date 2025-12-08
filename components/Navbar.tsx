@@ -74,13 +74,13 @@ export const Navbar: React.FC = () => {
     return (
         <>
             <nav
-                className={`sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 transition-all duration-300 ${isScrolled ? 'py-2 shadow-md' : 'py-4 shadow-sm'
+                className={`sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-300 ${isScrolled ? 'py-2 shadow-md' : 'py-4 shadow-sm'
                     }`}
             >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
                     <div className="flex justify-between items-center h-full">
                         {/* Logo */}
-                        <Link href="/" className="flex items-center gap-2 group">
+                        {/* <Link href="/" className="flex items-center gap-2 group">
                             <div className={`bg-indigo-600 rounded-lg group-hover:bg-indigo-700 transition-all duration-300 flex items-center justify-center ${isScrolled ? 'p-1.5' : 'p-2'
                                 }`}>
                                 <ShoppingBag className={`text-white transition-all duration-300 ${isScrolled ? 'w-5 h-5' : 'w-6 h-6'
@@ -88,6 +88,19 @@ export const Navbar: React.FC = () => {
                             </div>
                             <span className={`font-bold text-gray-900 tracking-tight transition-all duration-300 ${isScrolled ? 'text-lg' : 'text-xl'
                                 }`}>{APP_NAME}</span>
+                        </Link> */}
+                        {/* Logo */}
+                        <Link href="/" className="flex flex-col items-center justify-center gap-0 group">
+                            <img
+                                src="/logo.png"
+                                alt={APP_NAME}
+                                className={`object-contain transition-all duration-300 ${isScrolled ? 'h-7' : 'h-9'}`}
+                                onError={(e: any) => {
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                            {/* CẬP NHẬT: Tên shop nằm dưới logo */}
+                            <span className="font-bold text-gray-900 tracking-tight">{APP_NAME}</span>
                         </Link>
 
                         {/* Desktop Menu */}

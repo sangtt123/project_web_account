@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PayOS } from "@payos/node";
 import { prisma } from "@/lib/prisma";
 import { sendOrderEmail } from "@/utils/mail";
+import { config } from "dotenv";
 
 const payos = new PayOS({
     clientId: process.env.PAYOS_CLIENT_ID!,
@@ -42,7 +43,6 @@ export async function POST(req: Request) {
 
             // BƯỚC A: Kiểm tra tồn kho trước cho TẤT CẢ sản phẩm trong đơn
             let isInsufficientStock = false;
-
             for (const item of existingOrder!.order_item) {
                 const stockCount = await tx.account.count({
                     where: {
