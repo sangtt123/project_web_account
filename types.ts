@@ -1,7 +1,7 @@
 
 // Product Types
 export interface ProductOption {
-    id: string;
+    id?: string;
     name: string; // e.g., "1 Tháng", "1 Năm"
     price: number;
     original_price?: number;

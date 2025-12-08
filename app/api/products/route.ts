@@ -162,50 +162,101 @@ export async function PUT(req: Request) {
         const body = await req.json();
         if (!body.id) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
 
-        // Dùng transaction để: Xóa hết cái cũ -> Tạo cái mới
-        await prisma.$transaction([
-            // 1. Xóa Options cũ (nếu muốn reset option) - Ở đây mình giữ logic cũ là chỉ update product chính,
-            // nhưng với Features/Guides thì nên xóa đi tạo lại cho dễ quản lý thứ tự.
-            prisma.product_options.deleteMany({ where: { product_id: body.id } }),
-            prisma.product_features.deleteMany({ where: { product_id: body.id } }),
-            prisma.product_guides.deleteMany({ where: { product_id: body.id } }),
-            // Update thông tin sản phẩm chính
-            prisma.products.update({
-                where: { id: body.id },
-                data: {
-                    name: body.name,
-                    description: body.description,
-                    long_description: body.long_description,
-                    price: Number(body.price),
-                    original_price: body.original_price ? Number(body.original_price) : null,
-                    thumbnail: body.thumbnail,
-                    category: body.category,
-                    youtube_video_id: body.youtube_video_id,
-                    product_options: {
-                        create: body.options?.map((opt: any) => ({
-                            name: opt.name,
-                            price: Number(opt.price),
-                            original_price: opt.original_price ? Number(opt.original_price) : null,
-                            option_code: opt.option_code || null
-                        })) || [] // Nếu không có options thì mảng rỗng
-                    },
-                    // Re-create Features
-                    product_features: {
-                        create: body.product_features?.map((f: string) => ({ feature: f })) || []
-                    },
-                    // Re-create Guides
-                    product_guides: {
-                        create: body.product_guides?.map((g: string, index: number) => ({
-                            step_order: index + 1,
-                            step_text: g
-                        })) || []
+        const prodId = body.id;
+
+        // BƯỚC 1: Tìm các Option ID hiện có trong DB để biết cái nào cần xóa
+        const currentOptions = await prisma.product_options.findMany({
+            where: { product_id: prodId },
+            select: { id: true }
+        });
+        const currentIds = currentOptions.map(o => o.id);
+
+        // BƯỚC 2: Lọc ra các ID được gửi lên từ Frontend
+        // (Lưu ý: lọc bỏ các ID giả 'NEW-...' nếu bạn dùng cách đó)
+        const incomingOptions = body.options || [];
+        const incomingIds = incomingOptions
+            .filter((o: any) => o.id && !o.id.toString().startsWith('NEW')) // Logic lọc ID giả nếu có
+            .map((o: any) => o.id);
+
+        // BƯỚC 3: Xác định các ID cần xóa (Có trong DB nhưng không có trong list gửi lên)
+        const idsToDelete = currentIds.filter(id => !incomingIds.includes(id));
+
+        // --- BẮT ĐẦU TRANSACTION ---
+        // Chúng ta sẽ gom tất cả lệnh vào một mảng operations
+        const operations: any[] = [];
+
+        // 1. Xóa các Option bị user remove
+        if (idsToDelete.length > 0) {
+            operations.push(prisma.product_options.deleteMany({
+                where: { id: { in: idsToDelete } }
+            }));
+        }
+
+        // 2. Lặp qua từng option gửi lên để quyết định Update hay Create
+        incomingOptions.forEach((opt: any) => {
+            // Nếu có ID (và không phải ID giả) -> UPDATE
+            if (opt.id && !opt.id.toString().startsWith('NEW')) {
+                operations.push(prisma.product_options.update({
+                    where: { id: opt.id },
+                    data: {
+                        name: opt.name,
+                        price: Number(opt.price),
+                        original_price: opt.original_price ? Number(opt.original_price) : null,
+                        option_code: opt.option_code || null
                     }
+                }));
+            }
+            // Nếu không có ID (hoặc là ID giả) -> CREATE
+            else {
+                operations.push(prisma.product_options.create({
+                    data: {
+                        product_id: prodId, // Link với sản phẩm cha
+                        name: opt.name,
+                        price: Number(opt.price),
+                        original_price: opt.original_price ? Number(opt.original_price) : null,
+                        option_code: opt.option_code || null
+                    }
+                }));
+            }
+        });
+
+        // 3. Xóa Features và Guides cũ (Giữ nguyên logic của bạn)
+        operations.push(prisma.product_features.deleteMany({ where: { product_id: prodId } }));
+        operations.push(prisma.product_guides.deleteMany({ where: { product_id: prodId } }));
+
+        // 4. Update thông tin chính của Product + Tạo lại Features/Guides
+        operations.push(prisma.products.update({
+            where: { id: prodId },
+            data: {
+                name: body.name,
+                description: body.description,
+                long_description: body.long_description,
+                price: Number(body.price),
+                original_price: body.original_price ? Number(body.original_price) : null,
+                thumbnail: body.thumbnail,
+                category: body.category,
+                youtube_video_id: body.youtube_video_id,
+                // Re-create Features
+                product_features: {
+                    create: body.product_features?.map((f: string) => ({ feature: f })) || []
+                },
+                // Re-create Guides
+                product_guides: {
+                    create: body.product_guides?.map((g: string, index: number) => ({
+                        step_order: index + 1,
+                        step_text: g
+                    })) || []
                 }
-            })
-        ]);
+            }
+        }));
+
+        // Chạy tất cả trong 1 transaction
+        await prisma.$transaction(operations);
 
         return NextResponse.json({ message: "Update thành công" });
+
     } catch (err) {
+        console.log("error update:", err);
         return NextResponse.json({ error: "Lỗi update" }, { status: 500 });
     }
 }

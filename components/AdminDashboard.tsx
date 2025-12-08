@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Order, Category, Account, LogEntry, Product, Feature, Guides, HeroSlide } from '@/types';
+import { Order, ProductOption, Category, Account, LogEntry, Product, Feature, Guides, HeroSlide } from '@/types';
 import { Search, Image as ImageIcon, Layers, Edit, Tag, CheckCircle2, List, BookOpen, Youtube, Trash2, LayoutDashboard, Package, ShoppingCart, Terminal, Plus, RefreshCw, LogOut, User, Menu, X, Eye, PlayCircle, Calendar, Mail, CreditCard, Save, XCircle, Key, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { FileSpreadsheet } from 'lucide-react';
@@ -57,7 +57,7 @@ export const AdminDashboard: React.FC = () => {
     const [totalPages, setTotalPages] = useState(1);
 
     // --- STATE PRODUCT MANAGER ---
-    const [prodOptions, setProdOptions] = useState<{ name: string; price: number; original_price: number }[]>([]);
+    const [prodOptions, setProdOptions] = useState<ProductOption[]>([]);
     const [prodFeatures, setProdFeatures] = useState<Feature[]>([]);
     const [prodGuides, setProdGuides] = useState<Guides[]>([]);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -430,6 +430,7 @@ export const AdminDashboard: React.FC = () => {
 
             if (prod.product_options) {
                 setProdOptions(prod.product_options.map(o => ({
+                    id: o.id,
                     name: o.name,
                     price: o.price,
                     original_price: o.original_price || 0
@@ -486,6 +487,7 @@ export const AdminDashboard: React.FC = () => {
             long_description: prodDesc,
             youtube_video_id: prodYoutubeId,
             options: prodOptions.map(o => ({
+                id: o.id,
                 name: o.name,
                 price: !o.price ? 0 : Number(o.price),
                 original_price: !o.original_price ? 0 : Number(o.original_price)
@@ -1221,7 +1223,7 @@ export const AdminDashboard: React.FC = () => {
 
                             {/* Options */}
                             <div className="border-t border-gray-100 pt-4 mt-4">
-                                <div className="flex justify-between items-center mb-2"><label className="block text-xs font-bold text-gray-500 uppercase">Các gói dịch vụ (Options)</label><button type="button" onClick={() => setProdOptions([...prodOptions, { name: '', price: 0, original_price: 0 }])} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 font-bold flex items-center gap-1"><Plus className="w-3 h-3" /> Thêm gói</button></div>
+                                <div className="flex justify-between items-center mb-2"><label className="block text-xs font-bold text-gray-500 uppercase">Các gói dịch vụ (Options)</label><button type="button" onClick={() => setProdOptions([...prodOptions, { id: '1', name: '', price: 0, original_price: 0 }])} className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 font-bold flex items-center gap-1"><Plus className="w-3 h-3" /> Thêm gói</button></div>
                                 <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                                     {prodOptions.map((opt, idx) => (<div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded-lg border border-gray-200"><input type="text" placeholder="Tên gói" className="flex-1 p-1.5 text-sm border rounded outline-none text-gray-900" value={opt.name} onChange={e => { const n = [...prodOptions]; n[idx].name = e.target.value; setProdOptions(n); }} /><input type="number" placeholder="Giá bán" className="w-24 p-1.5 text-sm border rounded outline-none text-gray-900" value={opt.price === 0 ? '' : opt.price} onChange={e => { const n = [...prodOptions]; n[idx].price = Number(e.target.value); setProdOptions(n); }} /><input type="number" placeholder="Giá gốc" className="w-24 p-1.5 text-sm border rounded outline-none text-gray-500" value={opt.original_price === 0 ? '' : opt.original_price} onChange={e => { const n = [...prodOptions]; n[idx].original_price = Number(e.target.value); setProdOptions(n); }} /><button type="button" onClick={() => setProdOptions(prodOptions.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button></div>))}
                                 </div>
