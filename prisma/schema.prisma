@@ -78,14 +78,16 @@ model account {
 }
 
 model order {
-  id           String       @id @default(dbgenerated("(gen_random_uuid())::text"))
-  order_code   Int          @unique
-  user_email   String?
-  total_amount Int
-  status       String       @default("PENDING")
-  created_at   DateTime     @default(now())
-  updated_at   DateTime     @default(now())
-  order_item   order_item[]
+  id             String       @id @default(dbgenerated("(gen_random_uuid())::text"))
+  order_code     Int          @unique
+  user_email     String?
+  total_amount   Int
+  status         String       @default("PENDING")
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @default(now())
+  payment_method String?
+  transaction_id String?
+  order_item     order_item[]
 }
 
 model order_item {

@@ -64,7 +64,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { items, email, totalAmount } = body;
+        const { items, email, totalAmount, paymentMethod } = body;
 
         // 1. Validation cơ bản
         if (!items || items.length === 0) {
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
 
         // 3. Gọi Service để lưu vào Database
         // Hàm này sẽ tạo Order và OrderItem trong DB (Status mặc định là PENDING)
-        const newOrder = await apiCreateOrder(items, email, totalAmount, orderCode);
+        const newOrder = await apiCreateOrder(items, email, totalAmount, orderCode, paymentMethod);
 
         // 4. Trả về thông tin đơn hàng (để Frontend lấy orderCode gọi tiếp PayOS)
         return NextResponse.json(newOrder);

@@ -256,7 +256,6 @@ export async function PUT(req: Request) {
         return NextResponse.json({ message: "Update thành công" });
 
     } catch (err) {
-        console.log("error update:", err);
         return NextResponse.json({ error: "Lỗi update" }, { status: 500 });
     }
 }

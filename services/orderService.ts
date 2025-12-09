@@ -44,11 +44,12 @@ export const apiCreateOrder = async (
         optionId: string;
         optionName: string;
         quantity: number;
-        price: number
+        price: number;
     }[],
     email: string,
     totalAmount: number,
-    orderCode: number
+    orderCode: number,
+    paymentMethod: string
 ) => {
     const newOrder = await prisma.order.create({
         data: {
@@ -56,6 +57,7 @@ export const apiCreateOrder = async (
             user_email: email,
             total_amount: totalAmount,
             status: 'PENDING',
+            payment_method: paymentMethod,
             order_item: {
                 create: items.map(item => ({
                     product_id: item.productId,
@@ -75,77 +77,77 @@ export const apiCreateOrder = async (
     return newOrder;
 };
 
-// 2. Xử lý thanh toán & Trả hàng
-export const apiProcessPaymentAndGetAccounts = async (orderCode: number) => {
-    return await prisma.$transaction(async (tx) => {
-        // a. Tìm đơn hàng (Include sâu để lấy account nếu đã paid)
-        const order = await tx.order.findUnique({
-            where: { order_code: orderCode },
-            include: {
-                order_item: {
-                    include: { account: true } // Lấy luôn accounts đã gán vào item
-                }
-            }
-        });
+// // 2. Xử lý thanh toán & Trả hàng
+// export const apiProcessPaymentAndGetAccounts = async (orderCode: number) => {
+//     return await prisma.$transaction(async (tx) => {
+//         // a. Tìm đơn hàng (Include sâu để lấy account nếu đã paid)
+//         const order = await tx.order.findUnique({
+//             where: { order_code: orderCode },
+//             include: {
+//                 order_item: {
+//                     include: { account: true } // Lấy luôn accounts đã gán vào item
+//                 }
+//             }
+//         });
 
-        if (!order) throw new Error("Order not found");
+//         if (!order) throw new Error("Order not found");
 
-        // Nếu đã thanh toán, trả về dữ liệu lịch sử
-        if (order.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID) {
-            // Gom tất cả account từ các items lại thành 1 mảng phẳng để đưa vào hàm format
-            const allSoldAccounts = order.order_item.flatMap(item => item.account || []);
-            return { order, accounts: formatDeliveredAccounts(order.order_item, allSoldAccounts) };
-        }
+//         // Nếu đã thanh toán, trả về dữ liệu lịch sử
+//         if (order.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID) {
+//             // Gom tất cả account từ các items lại thành 1 mảng phẳng để đưa vào hàm format
+//             const allSoldAccounts = order.order_item.flatMap(item => item.account || []);
+//             return { order, accounts: formatDeliveredAccounts(order.order_item, allSoldAccounts) };
+//         }
 
-        // b. Logic lấy Account từ kho
-        let newlyAllocatedAccounts: Account[] = [];
+//         // b. Logic lấy Account từ kho
+//         let newlyAllocatedAccounts: Account[] = [];
 
-        for (const item of order.order_item) {
-            // Tìm account khớp Product + Option + Chưa bán
-            const availableAccounts = await tx.account.findMany({
-                where: {
-                    product_id: item.product_id,
-                    option_id: item.option_id, // QUAN TRỌNG: Phải đúng gói
-                    is_sold: false
-                },
-                take: item.quantity,
-                orderBy: { created_at: 'asc' }
-            });
+//         for (const item of order.order_item) {
+//             // Tìm account khớp Product + Option + Chưa bán
+//             const availableAccounts = await tx.account.findMany({
+//                 where: {
+//                     product_id: item.product_id,
+//                     option_id: item.option_id, // QUAN TRỌNG: Phải đúng gói
+//                     is_sold: false
+//                 },
+//                 take: item.quantity,
+//                 orderBy: { created_at: 'asc' }
+//             });
 
-            // Cập nhật: Gán Account vào OrderItem (thay vì Order)
-            const accountIds = availableAccounts.map(acc => acc.id);
-            if (accountIds.length > 0) {
-                await tx.account.updateMany({
-                    where: { id: { in: accountIds } },
-                    data: {
-                        is_sold: true,
-                        sold_at: new Date(),
-                        order_item_id: item.id // <--- MỚI: Liên kết với OrderItem ID
-                    }
-                });
-            }
+//             // Cập nhật: Gán Account vào OrderItem (thay vì Order)
+//             const accountIds = availableAccounts.map(acc => acc.id);
+//             if (accountIds.length > 0) {
+//                 await tx.account.updateMany({
+//                     where: { id: { in: accountIds } },
+//                     data: {
+//                         is_sold: true,
+//                         sold_at: new Date(),
+//                         order_item_id: item.id // <--- MỚI: Liên kết với OrderItem ID
+//                     }
+//                 });
+//             }
 
-            // Vì updateMany không trả về data mới, ta map thủ công orderItemId vào để trả về Client hiển thị ngay
-            const updatedAccounts = availableAccounts.map(acc => ({
-                ...acc,
-                orderItemId: item.id
-            }));
+//             // Vì updateMany không trả về data mới, ta map thủ công orderItemId vào để trả về Client hiển thị ngay
+//             const updatedAccounts = availableAccounts.map(acc => ({
+//                 ...acc,
+//                 orderItemId: item.id
+//             }));
 
-            newlyAllocatedAccounts = [...newlyAllocatedAccounts, ...updatedAccounts];
-        }
+//             newlyAllocatedAccounts = [...newlyAllocatedAccounts, ...updatedAccounts];
+//         }
 
-        // c. Cập nhật trạng thái đơn hàng
-        const updatedOrder = await tx.order.update({
-            where: { id: order.id },
-            data: { status: process.env.NEXT_PUBLIC_STATUS_ODR_PAID }
-        });
+//         // c. Cập nhật trạng thái đơn hàng
+//         const updatedOrder = await tx.order.update({
+//             where: { id: order.id },
+//             data: { status: process.env.NEXT_PUBLIC_STATUS_ODR_PAID }
+//         });
 
-        // d. Format dữ liệu
-        const finalResult = formatDeliveredAccounts(order.order_item, newlyAllocatedAccounts);
+//         // d. Format dữ liệu
+//         const finalResult = formatDeliveredAccounts(order.order_item, newlyAllocatedAccounts);
 
-        return { order: updatedOrder, accounts: finalResult };
-    });
-};
+//         return { order: updatedOrder, accounts: finalResult };
+//     });
+// };
 
 // --- Admin APIs ---
 

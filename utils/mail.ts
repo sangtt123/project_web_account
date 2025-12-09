@@ -19,8 +19,6 @@ export const sendOrderEmail = async (
     orderItems: OrderItemInfo[] // Dùng interface thay vì any[]
 ) => {
 
-    console.log("test mail 1: ", toEmail, orderCode, orderItems)
-
     // Cấu hình SMTP
     const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -30,18 +28,13 @@ export const sendOrderEmail = async (
         }
     });
 
-    console.log("test mail 2: ", transporter)
-
     // Verify kết nối trước khi gửi (Optional - giúp debug lỗi login gmail)
     try {
         await transporter.verify();
     } catch (error) {
         console.error("Lỗi kết nối SMTP:", error);
-        console.log("test mail error: ", error)
         return;
     }
-
-    console.log("test mail 3: ", transporter)
 
     // Tạo HTML
     const itemsHtml = orderItems.map(item => `

@@ -43,6 +43,8 @@ export interface Order {
     status: string;
     created_at: string;
     updated_at: string;
+    payment_method?: String;
+    transaction_id?: String;
     order_item: OrderItem[];
 }
 

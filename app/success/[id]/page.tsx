@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { cartService } from '@/services/cartService';
 import { CheckCircle, Copy, Loader2, AlertTriangle, Home, Phone, Mail, Package } from 'lucide-react';
@@ -37,8 +37,20 @@ const OrderSuccess: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState('');
 
+    // 2. Tạo Ref để lưu lại ID đã verify
+    // Ref giữ giá trị không đổi qua các lần render và không gây render lại
+    const isVerifiedRef = useRef<string | number | null>(null);
+
     useEffect(() => {
         if (!orderId) return;
+
+        // 3. CHECK: Nếu ID này đã được xử lý (hoặc đang xử lý) rồi thì return ngay
+        if (isVerifiedRef.current === orderId) {
+            return;
+        }
+
+        // 4. MARK: Đánh dấu là đã xử lý ID này
+        isVerifiedRef.current = orderId;
 
         const verifyAndUpdateOrder = async () => {
             try {
@@ -57,9 +69,10 @@ const OrderSuccess: React.FC = () => {
                     throw new Error(data.error || 'Không thể xác thực đơn hàng');
                 }
 
-                if (data.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID) {
-                    setOrder(data.data); // data.data chính là OrderData đã define ở trên
-                    cartService.clearCart(); // Xóa giỏ hàng
+                if (data.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID ||
+                    data.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID_C001) { // Thêm cả status C001 nếu cần
+                    setOrder(data.data);
+                    cartService.clearCart();
                 } else {
                     setErrorMsg(`Trạng thái đơn hàng: ${data.status} (Chưa thanh toán)`);
                 }
@@ -67,6 +80,9 @@ const OrderSuccess: React.FC = () => {
             } catch (e: any) {
                 console.error("Lỗi:", e);
                 setErrorMsg(e.message || "Đã có lỗi xảy ra");
+
+                // (Tùy chọn) Nếu lỗi mạng, có thể reset ref để cho phép thử lại
+                // isVerifiedRef.current = null;
             } finally {
                 setLoading(false);
             }
