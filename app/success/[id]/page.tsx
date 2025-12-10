@@ -69,11 +69,14 @@ const OrderSuccess: React.FC = () => {
                     throw new Error(data.error || 'Không thể xác thực đơn hàng');
                 }
 
-                if (data.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID ||
-                    data.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID_C001) { // Thêm cả status C001 nếu cần
+                if (data.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID) { // Thêm cả status C001 nếu cần
                     setOrder(data.data);
                     cartService.clearCart();
-                } else {
+                } else if (data.status === process.env.NEXT_PUBLIC_STATUS_ODR_PAID_C001) {
+                    setErrorMsg(`Trạng thái đơn hàng: ${data.status} (Đã thanh toán)`);
+                    cartService.clearCart();
+                }
+                else {
                     setErrorMsg(`Trạng thái đơn hàng: ${data.status} (Chưa thanh toán)`);
                 }
 
