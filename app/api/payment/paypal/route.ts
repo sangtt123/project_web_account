@@ -37,12 +37,21 @@ export async function POST(req: Request) {
         });
 
         // 4. GỌI PAYPAL VÀ TRẢ VỀ ID
+        // Thêm đoạn này vào trước khi gọi fetch PayPal
+        console.log("=== DEBUG ENV ===");
+        console.log("Client ID:", process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID);
+        // Chỉ in độ dài hoặc 3 ký tự cuối để bảo mật, nhưng đủ để biết nó có đọc được không
+        const secret = process.env.PAYPAL_CLIENT_SECRET || "";
+        console.log("Secret Length:", secret.length);
+        console.log("Secret Last 3 chars:", secret.slice(-3));
+        console.log("Secret contains \\r?:", secret.includes("\r")); // Kiểm tra ký tự lạ
         const response = await client.execute(request);
         return NextResponse.json({
             id: response.result.id // Trả về OrderID (VD: 5KJ62132W7083044F)
         });
 
     } catch (error: any) {
+        console.log("=================");
         console.error("PayPal Create Order Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
